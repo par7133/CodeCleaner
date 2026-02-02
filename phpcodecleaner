@@ -1,0 +1,256 @@
+#!/bin/sh
+# This file is part of PHPCodeCleaner and is tested and targeting primarly OpenBSD
+# Copyright NuMode and other contributors; Licensed MIT
+
+#set +e +p +m
+
+echo ""
+echo "This file is part of PHPCodeCleaner and is tested and targeting primarly OpenBSD"
+echo "Copyright NuMode and other contributors; Licensed MIT"
+
+param1=$*
+
+fnlist=$param1
+if [ "X$fnlist" = "X" ]; then
+  echo ""
+  echo "You need to specify a source file pattern"
+  echo ""
+  echo "abort."
+  exit 1
+fi
+#echo "debug: fnlist=$fnlist"
+
+cur=`pwd`
+for f in $fnlist
+do
+  if [ "X$fplist" = "X" ]; then
+    fplist="$cur/$f"
+  else
+    fplist="$fplist $cur/$f"
+  fi
+done
+
+echo ""
+echo "File list=$fplist"
+echo "Do you want to continue? [Y or N]"
+read key
+if [ $key = "N" ]; then
+  echo "done."
+  exit 1
+fi
+
+fcont[0]=""
+fi=0
+for fp in $fplist
+do
+
+   echo ""
+   echo "start processing.."
+
+   echo ""
+   echo "Filename=$fp"
+
+   if [ ! -e ${fp} ]; then
+     echo "File doesn't exist."
+     echo ""
+     echo "abort."
+     exit 1
+   fi
+
+   # reading file and filling the
+   # file content array..
+   unset fcont
+   totl=0
+   i=0
+   while read line; do
+     #echo "debug: line$i=${line}" 
+     #fcont[$i]=${line}
+   
+     let totl=$i+1
+     let i=$i+1
+  
+   done < ${fp}
+   let totl=$i+1
+   
+   i=1
+   while true; do
+     line=`head -n$i ${fp} | tail -n1`
+     #echo "debug: line$i=${line}"
+     fcont[$i]="${line}"
+		
+     if [ $i -ge $totl ]; then
+       break
+     fi
+
+     let i=$i+1
+
+   done
+
+   echo "Total lines=$totl"
+   echo ""
+
+
+cleanfile () 
+
+{
+
+   startcomm=0
+   endcomm=0
+
+   i=0
+   for line in "${fcont[@]}"
+   do
+
+     #echo "debug: processing line=$line"
+
+     if [ "${line}" = "%%NUMOED%%" ]; then
+       i=$i+1
+       continue
+     fi
+     
+     if [ "X$line" = "X/*" ]; then
+         #echo "debug: seq='$line'"
+         let startcomm=$i+1
+     else
+
+         for seq in ${line}
+         do
+           #echo "debug: seq='$seq'"
+
+           if [ "X$seq" = "X//" ]; then
+
+             let startcomm=$i+1
+             let endcomm=$i+1
+             break
+
+           else
+
+             case "X${seq}" in
+             X/* )
+               let startcomm=$i+1
+               case "X${seq}" in
+               X*/ )
+                 let endcomm=$i+1
+                 ;;
+               esac
+               ;;
+             X// )
+               let startcomm=$i+1
+               let endcomm=$i+1
+               ;;
+             X*/ )
+               let endcomm=$i+1
+               ;;
+             esac
+
+             if [ $endcomm -gt 0 ]; then
+               break
+             fi   
+
+           fi           
+
+         done 
+
+     fi
+
+     if [ $endcomm -gt 0 ]; then
+       
+       echo ""
+       echo "Comment found!"
+       echo "Start comment=line $startcomm"
+       echo "End Comm=line $endcomm"
+       echo ""  
+     
+       # Displaying new comment..
+       let j=$startcomm
+       let e=$endcomm
+       while true; do
+
+         echo "line$j=${fcont[$j]}"
+
+         if [ $j -ge $e ]; then
+           break
+         fi
+
+         let j=$j+1
+
+       done
+
+       echo "Keep or Clean the comment? [K or C]"
+       read key
+       #echo "debug: key=$key"
+
+       # Cleaning content from last comment..
+       if [ "X$key" = "XC" ]; then
+
+         let j=$startcomm
+         let e=$endcomm
+         while true; do
+
+           fcont[$j]="%%NUMODE%%"
+
+           if [ $j -ge $e ]; then
+             break
+           fi
+
+           let j=$j+1
+
+         done
+
+       fi
+
+       i=0
+       break 
+     fi
+
+     i=$i+1
+   done 
+
+   if [ $endcomm -eq 0 ]; then
+     return 1
+   else
+     return 0
+   fi
+
+}
+
+   while cleanfile -eq 0; do
+   done
+
+   echo ""
+   echo "No more comment found!"
+
+   z=0
+   for f in $fnlist
+   do
+     filename=$f
+     if [ z -eq $fi ]; then
+       break
+     fi
+     let z=$z+1
+   done
+
+   echo "Writing the clean file: ${filename}.clean ? [Y or N]"
+   read key
+
+   if [ "X$key" = "XY" ]; then
+
+     if [ -e $cur/${filename}.clean ]; then
+       rm $cur/${filename}.clean
+     fi
+
+     for line in "${fcont[@]}"
+     do 
+       if [ "${line}" != "%%NUMODE%%" ]; then
+         echo "${line}">>$cur/${filename}.clean  
+       fi
+     done
+     echo "$cur/${filename}.clean was wrote correctly."
+     echo "done."
+   fi
+
+   fi=$fi+1
+
+done
+
+exit 0
