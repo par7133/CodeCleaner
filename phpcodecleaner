@@ -1,11 +1,11 @@
 #!/bin/sh
-# This file is part of PHPCodeCleaner and is tested and targeting primarly OpenBSD
+# This file is part of CodeCleaner (for PHP) and is tested and targeting primarly OpenBSD
 # Copyright NuMode and other contributors; Licensed MIT
 
 #set +e +p +m
 
 echo ""
-echo "This file is part of PHPCodeCleaner and is tested and targeting primarly OpenBSD"
+echo "This file is part of CodeCleaner (for PHP) and is tested and targeting primarly OpenBSD"
 echo "Copyright NuMode and other contributors; Licensed MIT"
 
 param1=$*
@@ -70,12 +70,12 @@ do
      let i=$i+1
   
    done < ${fp}
-   let totl=$i+1
+   #let totl=$i+1
    
    i=1
    while true; do
      line=`head -n$i ${fp} | tail -n1`
-     #echo "debug: line$i=${line}"
+     echo "debug: line$i=${line}"
      fcont[$i]="${line}"
 		
      if [ $i -ge $totl ]; then
@@ -154,53 +154,64 @@ cleanfile ()
      fi
 
      if [ $endcomm -gt 0 ]; then
+
+       if [ $startcomm -eq 0 ]; then
+         startcomm=0
+         endcomm=0
+       else
        
-       echo ""
-       echo "Comment found!"
-       echo "Start comment=line $startcomm"
-       echo "End Comm=line $endcomm"
-       echo ""  
-     
-       # Displaying new comment..
-       let j=$startcomm
-       let e=$endcomm
-       while true; do
+		     echo ""
+		     echo "Comment found!"
+		     echo "Start comment=line $startcomm"
+		     echo "End Comm=line $endcomm"
+		     echo ""  
+		   
+		     # Displaying new comment..
+		     let j=$startcomm
+		     let e=$endcomm
+		     while true; do
 
-         echo "line$j=${fcont[$j]}"
+		       echo "line$j=${fcont[$j]}"
 
-         if [ $j -ge $e ]; then
-           break
-         fi
+		       if [ $j -ge $e ]; then
+		         break
+		       fi
 
-         let j=$j+1
+		       let j=$j+1
 
-       done
+		     done
 
-       echo "Keep or Clean the comment? [K or C]"
-       read key
-       #echo "debug: key=$key"
+		     echo "Keep or Clean the comment? [K or C]"
+		     read key
+		     #echo "debug: key=$key"
 
-       # Cleaning content from last comment..
-       if [ "X$key" = "XC" ]; then
+		     # Cleaning content from last comment..
+		     if [ "X$key" = "XC" ]; then
 
-         let j=$startcomm
-         let e=$endcomm
-         while true; do
+		       let j=$startcomm
+		       let e=$endcomm
+		       while true; do
 
-           fcont[$j]="%%NUMODE%%"
+		         fcont[$j]="%%NUMODE%%"
 
-           if [ $j -ge $e ]; then
-             break
-           fi
+		         if [ $j -ge $e ]; then
+		           break
+		         fi
 
-           let j=$j+1
+		         let j=$j+1
 
-         done
+		       done
 
-       fi
+		     fi
 
-       i=0
-       break 
+		     #i=0
+		     #break 
+
+		     startcomm=0
+		     endcomm=0
+
+       fi 
+
      fi
 
      i=$i+1
@@ -214,8 +225,9 @@ cleanfile ()
 
 }
 
-   while cleanfile -eq 0; do
-   done
+   cleanfile
+   #while cleanfile -eq 0; do
+   #done
 
    echo ""
    echo "No more comment found!"
